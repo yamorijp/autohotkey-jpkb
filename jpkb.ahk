@@ -47,11 +47,22 @@ update() {
     Menu, TRAY, Check, %_mode%
 }
 
+mouse_click_alt(button, alt, down_or_up) {
+    b := GetKeyState("Alt") ? alt : button
+    MouseClick, %b%, , , , , %down_or_up%
+}
+
 #SingleInstance, Force
 SetWorkingDir, %A_ScriptDir%
 #InstallKeybdHook
+#InstallMouseHook
 #UseHook
-SetKeyDelay 0
+SetKeyDelay -1
+SetMouseDelay -1
+
+lock_sc07b = 0
+lock_sc079 = 0
+lock_sc070 = 0
 
 global MODE_CLICK := "Click"
 global MODE_IME := "IME"
@@ -85,56 +96,62 @@ Return
 
 
 ; 無変換キー
-+sc07B::
-^sc07B::
-sc07B::
-    Switch (_mode)
-    {
-        case MODE_CLICK: MouseClick, Left
+*sc07b::
+    If (lock_sc07b) Return
+    lock_sc07b = 1
+    Switch (_mode) {
+        case MODE_CLICK: mouse_click_alt("Left", "X1", "D")
+    }
+Return
+
+*sc07b up::
+    lock_sc07b = 0
+    Switch (_mode) {
+        case MODE_CLICK: mouse_click_alt("Left", "X1", "U")
         case MODE_IME: ime_set(0)
     }
 Return
 
-!sc07B::
-    Switch (_mode)
-    {
-        case MODE_CLICK: MouseClick, X1
-    }
-Return    
-
 ; 変換キー
-+sc079::
-^sc079::
-sc079::
-    Switch (_mode)
-    {
-        case MODE_CLICK: MouseClick, Right
-        case MODE_IME: ime_set(1)
+*sc079::
+    If (lock_sc079) Return
+    lock_sc079 = 1
+    Switch (_mode) {
+        case MODE_CLICK: mouse_click_alt("Right", "X2", "D")
     }
 Return
 
-!sc079::
-    Switch (_mode)
-    {
-        case MODE_CLICK: MouseClick, X2
+*sc079 up::
+    lock_sc079 = 0
+    Switch (_mode) {
+        case MODE_CLICK: mouse_click_alt("Right", "X2", "U")
+        case MODE_IME: ime_set(1)        
     }
 Return
 
 ; かなキー
-+sc070::
-^sc070::
-sc070::
-    Switch (_mode)
-    {
-        case MODE_CLICK: MouseClick, Middle
+*sc070::
+    If (lock_sc070) Return
+    lock_sc070 = 1
+    If (!GetKeyState("Alt")) {
+        Switch (_mode) {
+            case MODE_CLICK: mouse_click_alt("Middle", "Middle", "D")
+        }
     }
 Return
 
-!sc070::
-    Switch (_mode)
-    {
-        case MODE_CLICK: Gosub, do_ime
-        case MODE_IME: Gosub, do_bypass
-        case MODE_BYPASS: Gosub, do_click
+*sc070 up::
+    lock_sc070 = 0
+    If (!GetKeyState("Alt")) {
+        Switch (_mode) {
+            case MODE_CLICK: mouse_click_alt("Middle", "Middle", "U")
+        }
     }
+    Else {
+        Switch (_mode) {
+            case MODE_CLICK: Gosub do_ime
+            case MODE_IME: Gosub do_bypass
+            case MODE_BYPASS: Gosub do_click
+        }        
+    }    
 Return
